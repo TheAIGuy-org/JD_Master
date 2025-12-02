@@ -1,0 +1,19 @@
+# Core Dependencies
+python-dotenv
+pydantic
+
+# LLM & Orchestration
+langchain
+langgraph
+groq
+
+# PDF Processing - UPDATED
+pymupdf4llm
+pdfplumber
+
+# PDF Generation - NEW
+weasyprint
+markdown
+
+# Utilities
+typing-extensions

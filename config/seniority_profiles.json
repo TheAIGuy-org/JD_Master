@@ -1,0 +1,51 @@
+{
+  "ENTRY_LEVEL": {
+    "label": "Entry Level (0-2 Years)",
+    "reasoning_focus": "Focus on learning agility, execution of clearly defined tasks, adherence to established standards.",
+    "autonomy_level": "Operates under direct supervision. Does not own architectural decisions.",
+    "risk_avoidance": "Eliminate language suggesting ownership of system-wide architecture or budget management.",
+    "vocabulary_shifts": {
+      "lead": "support",
+      "architect": "implement",
+      "design": "build",
+      "drive": "contribute",
+      "own": "assist with",
+      "strategic": "tactical"
+    },
+    "skill_filters": {
+      "exclude_categories": ["leadership", "strategic_planning", "budget_management", "c_suite_strategy"]
+    }
+  },
+  "MID_LEVEL": {
+    "label": "Mid-Senior (5-8 Years)",
+    "reasoning_focus": "Focus on system optimization, mentorship, and robust design patterns.",
+    "autonomy_level": "Operates independently on modules; contributes to architecture.",
+    "risk_avoidance": "Avoid executive-level strategic claims or VP-level stakeholder management.",
+    "vocabulary_shifts": {
+      "assist": "lead",
+      "learn": "mentor",
+      "support": "drive",
+      "build": "design",
+      "implement": "architect"
+    },
+    "skill_filters": {
+      "exclude_categories": ["c_suite_strategy", "executive_leadership"]
+    }
+  },
+  "PRINCIPAL": {
+    "label": "Principal / Leadership (15+ Years)",
+    "reasoning_focus": "Emphasize enterprise strategy, technical vision, and business impact.",
+    "autonomy_level": "Defines the roadmap with complete autonomy.",
+    "risk_avoidance": "Eliminate granular ticket-level task descriptions or language implying subservience.",
+    "vocabulary_shifts": {
+      "implement": "architect",
+      "build": "envision",
+      "contribute": "drive",
+      "support": "lead",
+      "assist": "own"
+    },
+    "skill_filters": {
+      "exclude_categories": ["entry_level_tasks", "junior_responsibilities"]
+    }
+  }
+}

@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JD Master | Enterprise Edition</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter'], display: ['Space Grotesk'] },
+                    colors: { brand: { 500: '#0ea5e9', 600: '#0284c7', 900: '#0c4a6e' } }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background: #0f172a;
+            color: #f8fafc;
+        }
+
+        .glass {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .active-section {
+            background: rgba(14, 165, 233, 0.1);
+            border-left: 3px solid #0ea5e9;
+        }
+
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+
+        .markdown-preview h1 {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #38bdf8;
+            margin-bottom: 0.5em;
+        }
+
+        .markdown-preview h2 {
+            font-size: 1.25em;
+            font-weight: 600;
+            color: #e2e8f0;
+            margin-top: 1em;
+            border-bottom: 1px solid #334155;
+        }
+
+        .markdown-preview ul {
+            list-style: disc;
+            padding-left: 1.5em;
+            color: #cbd5e1;
+        }
+
+        .markdown-preview p {
+            margin-bottom: 0.8em;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen flex flex-col">
+
+    <div id="app" class="flex-grow flex flex-col max-w-7xl mx-auto w-full px-4 py-6">
+
+        <header class="flex justify-between items-center mb-8">
+            <div class="flex items-center gap-3">
+                <div
+                    class="w-10 h-10 rounded-lg bg-gradient-to-br from-brand-500 to-purple-600 flex items-center justify-center">
+                    <i class="ph-bold ph-sparkle text-white text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="font-display font-bold text-xl">JD Master</h1>
+                    <p class="text-xs text-slate-400 tracking-wide">SEQUENTIAL EVOLUTION ENGINE</p>
+                </div>
+            </div>
+            <div v-if="sessionId"
+                class="px-3 py-1 rounded-full bg-slate-800 border border-slate-700 text-xs font-mono text-slate-400">
+                ID: {{ sessionId.slice(0,8) }}
+            </div>
+        </header>
+
+        <div class="mb-8 flex justify-between relative px-4">
+            <div class="absolute top-1/2 left-0 w-full h-0.5 bg-slate-800 -z-10"></div>
+            <div v-for="(step, idx) in steps" :key="idx" class="flex flex-col items-center gap-2 bg-[#0f172a] px-2">
+                <div class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-colors"
+                    :class="currentStep >= idx ? 'border-brand-500 text-brand-500 bg-brand-500/10' : 'border-slate-700 text-slate-600 bg-slate-900'">
+                    {{ idx + 1 }}
+                </div>
+                <span class="text-xs font-medium uppercase"
+                    :class="currentStep >= idx ? 'text-white' : 'text-slate-600'">{{ step }}</span>
+            </div>
+        </div>
+
+        <main class="flex-grow relative">
+
+            <div v-if="currentStep === 0" class="max-w-xl mx-auto space-y-6 animate-fade-in">
+                <div class="glass p-8 rounded-2xl space-y-6">
+                    <h2 class="text-2xl font-bold font-display">Initialize Job Context</h2>
+
+                    <div>
+                        <label class="block text-sm font-medium text-brand-500 mb-2">Target Seniority</label>
+                        <select v-model="selectedProfile"
+                            class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white focus:border-brand-500 outline-none">
+                            <option value="" disabled>Select a profile...</option>
+                            <option v-for="p in profiles" :key="p.key" :value="p.key">{{ p.label }}</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-brand-500 mb-2">Upload PDF</label>
+                        <div @click="$refs.fileInput.click()"
+                            class="border-2 border-dashed border-slate-700 hover:border-brand-500 hover:bg-slate-800/50 rounded-xl p-8 text-center cursor-pointer transition-colors">
+                            <input type="file" ref="fileInput" class="hidden" accept=".pdf" @change="handleFile">
+                            <i v-if="!file" class="ph-duotone ph-cloud-arrow-up text-3xl text-slate-500 mb-2"></i>
+                            <p v-if="!file" class="text-slate-400 text-sm">Click to upload JD PDF</p>
+                            <div v-else class="flex items-center justify-center gap-2 text-brand-400">
+                                <i class="ph-fill ph-file-pdf text-xl"></i>
+                                <span class="font-medium">{{ file.name }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button @click="startPhase1" :disabled="!canStart"
+                        class="w-full py-4 rounded-xl bg-brand-600 font-bold hover:bg-brand-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex justify-center gap-2">
+                        <span v-if="loading">Processing...</span>
+                        <span v-else>Analyze Document</span>
+                    </button>
+                </div>
+            </div>
+
+            <div v-if="currentStep === 1" class="max-w-4xl mx-auto space-y-6">
+                <div class="glass p-6 rounded-2xl">
+                    <h3 class="text-lg font-bold text-brand-500 mb-4 flex items-center gap-2">
+                        <i class="ph-fill ph-anchor"></i> Anchoring Entities
+                    </h3>
+
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="text-xs uppercase text-slate-500 font-bold">Domain Context</label>
+                            <textarea v-model="domainContext"
+                                class="w-full h-32 mt-2 bg-slate-900 rounded-lg p-3 text-sm border border-slate-700"></textarea>
+                        </div>
+                        <div>
+                            <label class="text-xs uppercase text-slate-500 font-bold mb-2 block">Detected Skills ({{
+                                approvedSkills.length }})</label>
+                            <div class="flex flex-wrap gap-2 max-h-32 overflow-y-auto pr-2">
+                                <span v-for="(skill, i) in approvedSkills" :key="i"
+                                    class="px-2 py-1 bg-slate-800 border border-slate-700 rounded text-xs flex items-center gap-1 group">
+                                    {{ skill }}
+                                    <button @click="removeSkill(i)" class="hover:text-red-400"><i
+                                            class="ph-bold ph-x"></i></button>
+                                </span>
+                                <input v-model="newSkill" @keydown.enter="addSkill" placeholder="+ Add..."
+                                    class="bg-transparent text-xs outline-none min-w-[60px] text-brand-400 placeholder-slate-600">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-6 flex justify-end">
+                        <button @click="finishGate1"
+                            class="px-6 py-2 bg-white text-slate-900 font-bold rounded-lg hover:bg-slate-200 transition-colors">
+                            Confirm Anchors & Proceed
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div v-if="currentStep === 2" class="flex h-[calc(100vh-200px)] gap-6">
+
+                <div class="w-1/4 glass rounded-2xl overflow-hidden flex flex-col">
+                    <div class="p-4 border-b border-slate-700 bg-slate-800/50">
+                        <h3 class="text-sm font-bold text-slate-300">Sections</h3>
+                        <div class="w-full bg-slate-700 h-1.5 mt-2 rounded-full overflow-hidden">
+                            <div class="bg-green-500 h-full transition-all duration-500"
+                                :style="{width: progressPct + '%'}"></div>
+                        </div>
+                    </div>
+
+                    <div class="overflow-y-auto flex-1 p-2 space-y-1">
+                        <button v-for="section in sections" :key="section.id" @click="selectSection(section)"
+                            class="w-full text-left p-3 rounded-lg text-sm transition-all flex items-center justify-between group"
+                            :class="activeSection?.id === section.id ? 'active-section bg-slate-800' : 'hover:bg-slate-800/50 text-slate-400'">
+
+                            <span class="truncate font-medium"
+                                :class="activeSection?.id === section.id ? 'text-white' : ''">
+                                {{ section.original_header }}
+                            </span>
+
+                            <i v-if="section.status === 'APPROVED'" class="ph-fill ph-check-circle text-green-500"></i>
+                            <i v-else-if="section.status === 'DRAFTED'"
+                                class="ph-fill ph-pencil-circle text-blue-400"></i>
+                            <i v-else-if="section.status === 'VALIDATED'"
+                                class="ph-fill ph-thumbs-up text-indigo-400"></i>
+                            <i v-else class="ph-duotone ph-circle text-slate-600"></i>
+                        </button>
+                    </div>
+
+                    <div class="p-4 border-t border-slate-700 bg-slate-800/50">
+                        <button @click="finishGate2" :disabled="!allApproved"
+                            class="w-full py-2 rounded-lg bg-green-600 text-white font-bold text-sm hover:bg-green-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                            Finalize All
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex-1 glass rounded-2xl flex flex-col overflow-hidden relative">
+
+                    <div v-if="!activeSection" class="flex-1 flex flex-col items-center justify-center text-slate-500">
+                        <i class="ph-duotone ph-hand-pointing text-4xl mb-2"></i>
+                        <p>Select a section from the sidebar to begin.</p>
+                    </div>
+
+                    <div v-else class="flex-1 flex flex-col h-full">
+                        <div
+                            class="px-6 py-4 border-b border-slate-700 flex justify-between items-center bg-slate-800/30">
+                            <div>
+                                <h2 class="font-bold text-lg text-white">{{ activeSection.original_header }}</h2>
+                                <span class="text-xs px-2 py-0.5 rounded bg-slate-700 text-slate-300 font-mono">{{
+                                    activeSection.semantic_tag }}</span>
+                            </div>
+
+                            <div class="flex gap-2">
+                                <button v-if="activeSection.status === 'PENDING'" @click="generateDraft"
+                                    class="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-sm font-bold flex items-center gap-2">
+                                    <span v-if="loadingSection" class="loader !w-3 !h-3 !border-2"></span>
+                                    <i v-else class="ph-bold ph-magic-wand"></i>
+                                    Generate Draft
+                                </button>
+
+                                <button v-if="['DRAFTED', 'VALIDATED'].includes(activeSection.status)"
+                                    @click="regenerateDraft"
+                                    class="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg text-sm flex items-center gap-2">
+                                    <i class="ph-bold ph-arrows-clockwise"
+                                        :class="{'animate-spin': loadingSection}"></i>
+                                    Retry
+                                </button>
+
+                                <button v-if="['DRAFTED', 'VALIDATED'].includes(activeSection.status)"
+                                    @click="approveSection"
+                                    class="px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg text-sm font-bold flex items-center gap-2">
+                                    <i class="ph-bold ph-check"></i>
+                                    Approve & Next
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="flex-1 flex min-h-0">
+                            <div class="w-1/2 p-6 overflow-y-auto border-r border-slate-700 bg-slate-900/30">
+                                <h4
+                                    class="text-xs font-bold text-slate-500 uppercase mb-4 sticky top-0 bg-[#0f172a] py-2 z-10">
+                                    Original Content</h4>
+                                <div class="text-sm text-slate-400 whitespace-pre-line leading-relaxed">
+                                    {{ activeSection.original_content }}
+                                </div>
+                            </div>
+
+                            <div class="w-1/2 flex flex-col bg-slate-800/10 relative">
+                                <div class="p-6 overflow-y-auto flex-1 relative">
+                                    <h4 class="text-xs font-bold text-brand-500 uppercase mb-4 sticky top-0 z-10">
+                                        AI Draft <span v-if="activeSection.critique_feedback"
+                                            class="ml-2 text-amber-400 normal-case">({{ activeSection.critique_feedback
+                                            }})</span>
+                                    </h4>
+
+                                    <textarea v-if="['DRAFTED', 'VALIDATED', 'APPROVED'].includes(activeSection.status)"
+                                        v-model="activeSection.draft_content"
+                                        class="w-full h-full bg-transparent border-none text-slate-200 text-sm leading-relaxed outline-none resize-none"
+                                        placeholder="Generated content will appear here..."></textarea>
+
+                                    <div v-else
+                                        class="flex flex-col items-center justify-center h-48 text-slate-600 mt-20">
+                                        <i class="ph-duotone ph-cpu text-3xl mb-2"></i>
+                                        <p class="text-sm">Ready to generate draft</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div v-if="currentStep === 3" class="max-w-4xl mx-auto space-y-8 animate-fade-in">
+                <div class="text-center space-y-4">
+                    <div
+                        class="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto text-green-500 text-3xl">
+                        <i class="ph-fill ph-check"></i>
+                    </div>
+                    <h2 class="text-3xl font-bold font-display">Job Description Evolved</h2>
+                    <div class="flex justify-center gap-4">
+                        <button @click="downloadPDF"
+                            class="px-6 py-3 bg-white text-slate-900 font-bold rounded-xl hover:bg-slate-200 flex items-center gap-2">
+                            <i class="ph-bold ph-file-pdf"></i> Download PDF
+                        </button>
+                        <button @click="downloadMD"
+                            class="px-6 py-3 bg-slate-800 border border-slate-700 font-bold rounded-xl hover:bg-slate-700">
+                            Markdown
+                        </button>
+                    </div>
+                </div>
+
+                <div class="glass p-8 rounded-2xl markdown-preview" v-html="renderedMarkdown"></div>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        const { createApp, ref, computed, onMounted } = Vue;
+        const API_BASE = 'http://localhost:8000';
+
+        createApp({
+            setup() {
+                const currentStep = ref(0);
+                const steps = ['Setup', 'Anchor', 'Evolution', 'Finish'];
+                const loading = ref(false);
+                const loadingSection = ref(false);
+
+                // Data
+                const profiles = ref([]);
+                const selectedProfile = ref('');
+                const file = ref(null);
+                const sessionId = ref(null);
+
+                const domainContext = ref('');
+                const approvedSkills = ref([]);
+                const newSkill = ref('');
+
+                const sections = ref([]);
+                const activeSection = ref(null);
+                const finalMarkdown = ref('');
+
+                const canStart = computed(() => selectedProfile.value && file.value);
+                const progressPct = computed(() => {
+                    if (!sections.value.length) return 0;
+                    const done = sections.value.filter(s => s.status === 'APPROVED').length;
+                    return (done / sections.value.length) * 100;
+                });
+                const allApproved = computed(() => sections.value.length > 0 && sections.value.every(s => s.status === 'APPROVED'));
+                const renderedMarkdown = computed(() => marked.parse(finalMarkdown.value || ''));
+
+                // Init
+                onMounted(async () => {
+                    const res = await fetch(`${API_BASE}/profiles`);
+                    profiles.value = await res.json();
+                });
+
+                // Actions
+                const handleFile = (e) => file.value = e.target.files[0];
+                const removeSkill = (i) => approvedSkills.value.splice(i, 1);
+                const addSkill = () => { if (newSkill.value) { approvedSkills.value.push(newSkill.value); newSkill.value = ''; } };
+
+                const startPhase1 = async () => {
+                    loading.value = true;
+                    try {
+                        // Create Session
+                        const sRes = await fetch(`${API_BASE}/sessions`, {
+                            method: 'POST', headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ target_profile_key: selectedProfile.value })
+                        });
+                        const sData = await sRes.json();
+                        sessionId.value = sData.session_id;
+
+                        // Upload
+                        const fd = new FormData(); fd.append('file', file.value);
+                        const p1Res = await fetch(`${API_BASE}/sessions/${sessionId.value}/phase1`, { method: 'POST', body: fd });
+                        const p1Data = await p1Res.json();
+
+                        approvedSkills.value = p1Data.extracted_skills;
+                        domainContext.value = p1Data.domain_context;
+                        currentStep.value = 1;
+                    } catch (e) { alert(e); }
+                    finally { loading.value = false; }
+                };
+
+                const finishGate1 = async () => {
+                    loading.value = true;
+                    try {
+                        // Approve Gate 1
+                        await fetch(`${API_BASE}/sessions/${sessionId.value}/gate1`, {
+                            method: 'POST', headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ approved_skills: approvedSkills.value, domain_context: domainContext.value })
+                        });
+
+                        // Init Phase 2 (Routing only)
+                        const p2Res = await fetch(`${API_BASE}/sessions/${sessionId.value}/phase2/init`, { method: 'POST' });
+                        const p2Data = await p2Res.json();
+
+                        sections.value = p2Data.sections;
+                        // Auto-select first relevant section
+                        const first = sections.value.find(s => s.semantic_tag !== 'BRAND_STATIC');
+                        if (first) selectSection(first);
+
+                        currentStep.value = 2;
+                    } catch (e) { alert(e); }
+                    finally { loading.value = false; }
+                };
+
+                const selectSection = (s) => activeSection.value = s;
+
+                const generateDraft = async () => {
+                    if (!activeSection.value) return;
+                    loadingSection.value = true;
+                    try {
+                        const res = await fetch(`${API_BASE}/sessions/${sessionId.value}/sections/${activeSection.value.id}/generate`, { method: 'POST' });
+                        const updated = await res.json();
+                        updateLocalSection(updated);
+                    } catch (e) { alert("Generation failed"); }
+                    finally { loadingSection.value = false; }
+                };
+
+                const regenerateDraft = async () => {
+                    loadingSection.value = true;
+                    try {
+                        const res = await fetch(`${API_BASE}/sessions/${sessionId.value}/sections/${activeSection.value.id}/regenerate`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ section_id: activeSection.value.id, custom_instruction: "Make it more concise" })
+                        });
+                        const updated = await res.json();
+                        updateLocalSection(updated);
+                    } finally { loadingSection.value = false; }
+                };
+
+                const approveSection = async () => {
+                    try {
+                        const res = await fetch(`${API_BASE}/sessions/${sessionId.value}/sections/${activeSection.value.id}/approve`, {
+                            method: 'POST', headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ section_id: activeSection.value.id, content: activeSection.value.draft_content })
+                        });
+                        const data = await res.json();
+
+                        // Update local status
+                        const idx = sections.value.findIndex(s => s.id === activeSection.value.id);
+                        sections.value[idx].status = 'APPROVED';
+                        sections.value[idx].final_content = activeSection.value.draft_content;
+
+                        // Auto-advance to next pending
+                        const next = sections.value.find((s, i) => i > idx && s.semantic_tag !== 'BRAND_STATIC');
+                        if (next) selectSection(next);
+                    } catch (e) { alert("Approval failed"); }
+                };
+
+                const finishGate2 = async () => {
+                    loading.value = true;
+                    try {
+                        await fetch(`${API_BASE}/sessions/${sessionId.value}/gate2`, { method: 'POST' });
+                        const p3Res = await fetch(`${API_BASE}/sessions/${sessionId.value}/phase3`, { method: 'POST' });
+                        const p3Data = await p3Res.json();
+                        finalMarkdown.value = p3Data.final_markdown;
+                        currentStep.value = 3;
+                    } catch (e) { alert("Finalization failed"); }
+                    finally { loading.value = false; }
+                };
+
+                const updateLocalSection = (updated) => {
+                    const idx = sections.value.findIndex(s => s.id === updated.id);
+                    if (idx !== -1) {
+                        sections.value[idx] = updated;
+                        activeSection.value = updated;
+                    }
+                };
+
+                const downloadPDF = async () => {
+                    window.location.href = `${API_BASE}/sessions/${sessionId.value}/download/pdf`;
+                };
+
+                const downloadMD = () => {
+                    const blob = new Blob([finalMarkdown.value], { type: 'text/markdown' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url; a.download = 'jd.md'; a.click();
+                }
+
+                return {
+                    currentStep, steps, loading, loadingSection,
+                    profiles, selectedProfile, file, canStart,
+                    sessionId, domainContext, approvedSkills, newSkill,
+                    sections, activeSection, progressPct, allApproved,
+                    finalMarkdown, renderedMarkdown,
+                    handleFile, startPhase1, removeSkill, addSkill, finishGate1,
+                    selectSection, generateDraft, regenerateDraft, approveSection, finishGate2,
+                    downloadPDF, downloadMD
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+
+</html>
