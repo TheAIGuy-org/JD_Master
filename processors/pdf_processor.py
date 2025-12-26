@@ -10,7 +10,7 @@ from typing import Optional, Tuple
 from utils.logger import setup_logger
 from utils.validators import Validator, ValidationError
 from processors.visual_profile_extractor import VisualProfileExtractor, VisualProfile
-
+import re
 logger = setup_logger(__name__)
 
 
@@ -111,21 +111,20 @@ class PDFProcessor:
             Cleaned text
         """
         # Fix double-character artifact (e.g., "SSEENNIIOORR" -> "SENIOR")
-        # Pattern: Matches repeated characters (same char appears twice consecutively)
-        def fix_double_chars(match):
-            return match.group(1)
+        # Matches: AA BB CC (at least 3 pairs in a row)
+        def fix_shadow_text(match):
+            # Take the full match "TTeecchh" and take every 2nd char -> "Tech"
+            return match.group(0)[::2]
+
+        # Regex: ([A-Z])\1 -> Any double uppercase char
+        # We look for a sequence of 3 or more double-uppercases
+        # e.g. "OOFFFFEERR" matches. "OFFER" (FF is only 1 pair) does NOT match.
+        text = re.sub(r'(([A-Z])\2){3,}', fix_shadow_text, text)
         
-        # Only deduplicate UPPERCASE letters (typical PDF header artifacts)
-        # This prevents breaking valid words like "meeting", "access", "skill"
-        text = re.sub(r'([A-Z])\1', fix_double_chars, text)
-        
-        # Remove excessive blank lines (more than 2 consecutive)
+        # Cleanup extra newlines
         text = re.sub(r'\n{3,}', '\n\n', text)
         
-        # Clean up table artifacts
-        text = re.sub(r'\|?\s*-+\s*\|', '', text)  # Remove separator lines
-        
-        # Normalize whitespace in headers
-        text = re.sub(r'#+\s+', lambda m: m.group(0).strip() + ' ', text)
+        # Cleanup table borders
+        text = re.sub(r'\|?\s*-+\s*\|', '', text)
         
         return text.strip()

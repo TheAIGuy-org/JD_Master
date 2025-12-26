@@ -6,7 +6,7 @@ Ensures data conforms to expected formats.
 from typing import List, Dict, Any, Optional
 import json
 from utils.logger import setup_logger
-
+import re
 logger = setup_logger(__name__)
 
 
@@ -145,22 +145,30 @@ class Validator:
         Returns:
             Parsed dictionary or None if parsing fails
         """
-        try:
-            # Remove markdown code blocks if present
-            cleaned = json_string.strip()
-            if cleaned.startswith("```json"):
-                cleaned = cleaned[7:]
-            if cleaned.startswith("```"):
-                cleaned = cleaned[3:]
-            if cleaned.endswith("```"):
-                cleaned = cleaned[:-3]
-            
-            cleaned = cleaned.strip()
-            return json.loads(cleaned)
-        except json.JSONDecodeError as e:
-            logger.error(f"JSON parsing failed: {e}")
-            logger.debug(f"Failed JSON string: {json_string[:200]}...")
+        if not json_string:
             return None
+
+        try:
+            # 1. Try direct parse first
+            return json.loads(json_string)
+        except json.JSONDecodeError:
+            pass
+
+        try:
+            # 2. Extract JSON block using Regex (Finds { ... } spanning lines)
+            # This handles "Here is the JSON: ```json { ... } ```"
+            match = re.search(r'(\{.*\}|\[.*\])', json_string, re.MULTILINE | re.DOTALL)
+            
+            if match:
+                json_candidate = match.group(0)
+                # Clean up potential markdown artifacts inside the match
+                json_candidate = json_candidate.replace("```json", "").replace("```", "")
+                return json.loads(json_candidate)
+            
+        except json.JSONDecodeError as e:
+            logger.error(f"JSON parsing failed after regex extraction: {e}")
+            
+        return None
     
     @staticmethod
     def validate_pdf_path(file_path: str) -> bool:

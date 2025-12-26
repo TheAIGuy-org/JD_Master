@@ -68,24 +68,21 @@ JSON OUTPUT:"""
         return f"""You are a skill extraction specialist. Extract the Ground Truth from this Job Description.
 
 YOUR MISSION:
-Extract two critical pieces of information:
-1. SKILLS: Concrete technical skills, tools, technologies explicitly mentioned
-2. DOMAIN: The industry/business domain (e.g., "Fintech", "Healthcare", "E-commerce")
+Extract three critical pieces of information:
+1. JOB_TITLE: The exact role title mentioned in the JD (e.g. "Senior Software Engineer")
+2. SKILLS: Concrete technical skills, tools, technologies explicitly mentioned
+3. DOMAIN: The industry/business domain (e.g., "Fintech", "Healthcare", "E-commerce")
 
 FILTERING RULES:
 The target role is: {target_profile['label']}
 EXCLUDE any skills in these categories: {', '.join(excluded_categories)}
-
-Examples of excluded skills:
-- If "leadership" is excluded: Remove "Team Leadership", "Strategic Planning", "Budget Management"
-- If "c_suite_strategy" is excluded: Remove "Executive Decision Making", "Board Presentations"
 
 EXTRACTION RULES:
 1. Extract ONLY skills explicitly mentioned in the text
 2. Use the exact terminology from the JD (e.g., "Python", not "Python programming")
 3. Do NOT infer or add skills not present
 4. For domain, infer from context if not explicitly stated
-5. Apply the filtering rules strictly
+5. Look for the Job Title at the beginning or in 'About the Role' sections.
 
 JOB DESCRIPTION SECTIONS:
 {sections_text}
@@ -93,14 +90,14 @@ JOB DESCRIPTION SECTIONS:
 OUTPUT FORMAT:
 Return ONLY valid JSON with this structure:
 {{
+  "job_title": "extracted title string",
   "skills": ["skill1", "skill2", ...],
   "domain": "domain_name"
 }}
 
 CRITICAL RULES:
-- Output ONLY JSON, no markdown, no explanation
+- Output ONLY JSON, no markdown
 - Skills array must not be empty (extract at least generic skills if specific ones filtered)
-- Domain must be a single string
 
 JSON OUTPUT:"""
     
@@ -154,6 +151,7 @@ REWRITING RULES:
 5. Avoid language that violates the risk avoidance guidelines
 6. Keep the rewritten content roughly the same length as original
 7. Maintain professional, clear language
+8. FORMATTING: If the original content uses bullet points, you MUST use Markdown bullet points ('- ') in the output.
 
 OUTPUT FORMAT:
 Return ONLY the rewritten content as plain text, no JSON, no markdown.

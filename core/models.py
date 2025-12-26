@@ -2,6 +2,7 @@
 """
 Core data models defining the state and structure.
 These are the atoms of our system - immutable contracts.
+PRODUCTION EDITION: Zero hardcoded assumptions.
 """
 from typing import TypedDict, List, Dict, Optional, Any
 from enum import Enum
@@ -49,6 +50,7 @@ class SectionBlock(TypedDict):
     """
     Atomic unit representing one logical section of the JD.
     Each block moves through the workflow independently.
+    NOW WITH STRUCTURAL METADATA for perfect reconstruction.
     """
     id: str
     original_header: str
@@ -59,9 +61,23 @@ class SectionBlock(TypedDict):
     status: str
     critique_feedback: Optional[str]
     metadata: Dict
+    
+    # NEW: Structural preservation fields
+    header_level: int  # 1 = H1 (title), 2 = H2 (section), 3 = H3 (subsection)
+    position_index: int  # Original position in document (0-based)
 
 
-# --- NEW: Added CompensationData definition ---
+class DocumentStructure(TypedDict):
+    """
+    NEW: Captures the original document's structural DNA.
+    This is the blueprint for perfect reconstruction.
+    """
+    has_title_section: bool  # Does first section act as document title?
+    title_text: Optional[str]  # Extracted title if exists
+    section_order: List[str]  # Ordered list of section IDs
+    header_hierarchy: Dict[str, int]  # section_id -> header_level mapping
+
+
 class CompensationData(TypedDict):
     """Structured compensation information"""
     salary_range: Optional[str]
@@ -85,11 +101,18 @@ class JDState(TypedDict):
     # Phase 1: Structure
     sections: List[SectionBlock]
     
+    # NEW: Document Structure Memory
+    document_structure: DocumentStructure
+    
     # Phase 1: Ground Truth (Locked after Gate 1)
     approved_skills: List[str]
     domain_context: str
+    job_title: str
     
-    # --- NEW: Added missing fields required by Extract Trinity node ---
+    # Visual Profile (for format preservation)
+    visual_profile: Optional[Dict]
+    
+    # Phase 1: Additional extracted data
     compensation_data: Optional[CompensationData]
     experience_level: Optional[str]
     
@@ -109,11 +132,14 @@ class JDState(TypedDict):
 def create_section_block(
     header: str,
     content: str,
-    semantic_tag: str = SemanticTag.UNKNOWN
+    semantic_tag: str = SemanticTag.UNKNOWN,
+    header_level: int = 2,
+    position_index: int = 0
 ) -> SectionBlock:
     """
     Factory function to create a new section block with defaults.
     Ensures consistent initialization.
+    NOW WITH STRUCTURAL METADATA.
     """
     return SectionBlock(
         id=str(uuid.uuid4()),
@@ -124,7 +150,9 @@ def create_section_block(
         final_content="",
         status=SectionStatus.PENDING,
         critique_feedback=None,
-        metadata={}
+        metadata={},
+        header_level=header_level,
+        position_index=position_index
     )
 
 
@@ -138,14 +166,22 @@ def create_initial_state(target_profile_key: str) -> JDState:
         target_profile_key=target_profile_key,
         metadata={},
         sections=[],
+        document_structure=DocumentStructure(
+            has_title_section=False,
+            title_text=None,
+            section_order=[],
+            header_hierarchy={}
+        ),
         approved_skills=[],
         domain_context="",
-        compensation_data=None, # Initialize new field
-        experience_level=None,  # Initialize new field
+        job_title="",
+        visual_profile=None,
+        compensation_data=None,
+        experience_level=None,
         processing_errors=[],
         validation_warnings=[],
         final_jd_markdown="",
         phase="INIT",
         gate_1_approved=False,
-        gate_2_approved=False
+        gate_2_approved=False,
     )
